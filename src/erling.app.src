@@ -1,7 +1,7 @@
 {application, erling,
  [
-  {description, ""},
-  {vsn, "1"},
+  {description, "Erling: An IRC bot in Erlang."},
+  {vsn, "0.1.0-SNAPSHOT"},
   {registered, []},
   {applications, [
                   kernel,
