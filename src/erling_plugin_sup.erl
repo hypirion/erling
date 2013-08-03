@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% File    : erling_plugin_sup.erl
 %%% Author  : Jean Niklas L'orange <jeannikl@hypirion.com>
-%%% Description : Erlang's plugin supervisor.
+%%% Description : Erling's plugin supervisor.
 %%%
 %%% Created :  1 Aug 2013 by Jean Niklas L'orange <jeannikl@hypirion.com>
 %%%-------------------------------------------------------------------
@@ -57,8 +57,8 @@ start_link() ->
 init([]) ->
     {ok, {{simple_one_for_one, 0, 1},
           [{erling_plugin,
-            {plugin_module, start_link, []},
-            permanent, 5000, worker, [erling_plugin_sup]}]}}.
+            {erlang, apply, []},
+            permanent, 5000, worker, []}]}}.
 
 %%====================================================================
 %% Internal functions
