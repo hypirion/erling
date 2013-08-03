@@ -1,4 +1,3 @@
-
 -module(erling_sup).
 
 -behaviour(supervisor).
@@ -24,5 +23,16 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+    {ok, {{rest_for_one, 1, 0},
+          [{erling_plugin_sup,
+            {erling_plugin_sup, start_link, []},
+            permanent,
+            5000,
+            supervisor,
+            [erling_plugin_sup]},
+           {erling_irc_server_sup,
+            {erling_irc_server_sup, start_link, []},
+            permanent,
+            5000,
+            supervisor}]}}.
 
