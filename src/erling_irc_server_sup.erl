@@ -56,9 +56,9 @@ start_link() ->
 %%--------------------------------------------------------------------
 init([]) ->
     {ok, {{simple_one_for_one, 0, 1},
-          [{erling_plugin,
-            {irc_server, start_link, []},
-            permanent, 5000, worker, [erling_plugin_sup]}]}}.
+          [{erling_irc_server,
+            {erling_irc_server, start_link, []},
+            permanent, 5000, worker, [erling_irc_server]}]}}.
 
 %%====================================================================
 %% Internal functions
