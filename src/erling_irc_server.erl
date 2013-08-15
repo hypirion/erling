@@ -14,12 +14,22 @@
 
 %%------------------------------------------------------------------------------
 %% External exports
--export([start_link/0]).
+-export([start_link/4]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--record(state, {}).
+% irc client server state
+-record(state, {
+  % irc nicks
+  nicks = [],
+  % irc server host
+  host = <<>>,
+  % irc server port
+  port = 0,
+  % timeout method
+  timeout_method = {nil, nil, nil}
+}).
 
 %%------------------------------------------------------------------------------
 %% Macros
@@ -30,11 +40,22 @@
 %% External functions
 %%==============================================================================
 %%------------------------------------------------------------------------------
-%% Function: start_link/0
+%% Function: start_link/4
 %% Description: Starts the server
+%% Argument explanations:
+%%  Host - A binary with the hostname to connect to.
+%%  Post - An integer with the port to connect to.
+%%  Nicks - A list of binaries with nicknames to use. If none are available,
+%%    will return an okay server, but crash immediately afterwards.
+%%  TimeoutMethod - A tuple {Method, Wait, Retries}, where Method is either the
+%%    atom constant or exponential. Wait is an integer, specifying the amount of
+%%    time to wait on first reconnection attempt. Retries specifies how many
+%%    times one should attempt to reconnect. Use infinity for infinitely many
+%%    attempts.
 %%------------------------------------------------------------------------------
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+%% TODO: Add in possibility to use SSL (socket option)
+start_link(Host, Port, Nicks, TimeoutMethod) ->
+    gen_server:start_link(?MODULE, [Host, Port, Nicks, TimeoutMethod], []).
 
 %%==============================================================================
 %% Server functions
@@ -48,8 +69,9 @@ start_link() ->
 %%          ignore               |
 %%          {stop, Reason}
 %%------------------------------------------------------------------------------
-init([]) ->
-    {ok, #state{}}.
+init([Host, Port, Nicks, TimeoutMethod]) ->
+    {ok, #state{host = Host, port = Port, nicks = Nicks,
+                timeout_method = TimeoutMethod}}.
 
 %%------------------------------------------------------------------------------
 %% Function: handle_call/3

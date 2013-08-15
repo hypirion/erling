@@ -89,4 +89,3 @@ char_to_upper($}) -> $];
 char_to_upper($\\) -> $|;
 char_to_upper($~) -> $^;
 char_to_upper(Ch) -> Ch.
-
