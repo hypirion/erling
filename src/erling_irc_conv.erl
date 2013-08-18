@@ -87,7 +87,7 @@ split_at(Elems, Message) ->
 get_command([F | Message]) ->
     if ?IS_LETTER(F) ->
             %% TODO: Convert first part to atom here.
-            lists:splitwith(is_letter/1, [F | Message]);
+            lists:splitwith(fun is_letter/1, [F | Message]);
        ?IS_DIGIT(F) ->
             [S, T | Rest] = Message,
             if ?IS_DIGIT(S), ?IS_DIGIT(T) ->
