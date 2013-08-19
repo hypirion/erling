@@ -1,4 +1,5 @@
 # erling
+[![Build Status](https://travis-ci.org/hyPiRion/erling.png?branch=master)](https://travis-ci.org/hyPiRion/erling)
 
 Erling is an IRC bot which will be written in Erlang. 
 

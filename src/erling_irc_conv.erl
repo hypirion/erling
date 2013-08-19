@@ -92,10 +92,10 @@ get_command([F | Message]) ->
             [S, T | Rest] = Message,
             if ?IS_DIGIT(S), ?IS_DIGIT(T) ->
                     {lookup_command_name([F, S, T]), Rest};
-               false -> % S or T not digit
+               true -> % S or T not digit
                     {err, "First element was digit, but not second/third."}
             end;
-       false -> % neither digit nor letter
+       true -> % neither digit nor letter
             {err, "First character was neither digit not letter."}
     end.
 
