@@ -100,6 +100,19 @@ get_command([F | Message]) ->
     end.
 
 %%------------------------------------------------------------------------------
+%% Function: parse_message/1
+%% Description: The internal handler for message_to_tuple.
+%% Returns: {ok, {Prefix, Command, Params}} |
+%%          {error, Reason}
+%%------------------------------------------------------------------------------
+parse_message([$: | Message]) ->
+    {Prefix, Rest} = split_at(?SPACE, Message),
+    {error, "Not yet implemented."};
+parse_message(Message) ->
+    get_command(Message),
+    {error, "Not yet implemented."}.
+
+%%------------------------------------------------------------------------------
 %% Function: lookup_command_name/1
 %% Description: Returns the command atom of the command code, a three-digit
 %%   string. If the command code is not described in rfc2812, it will return
@@ -245,19 +258,6 @@ lookup_command_name("491") -> err_nooperhost;
 lookup_command_name("501") -> err_umodeunknownflag;
 lookup_command_name("502") -> err_usersdontmatch;
 lookup_command_name(CommandCode) -> notfound. %% We could add in reserved too?
-
-%%------------------------------------------------------------------------------
-%% Function: parse_message/1
-%% Description: The internal handler for message_to_tuple.
-%% Returns: {ok, {Prefix, Command, Params}} |
-%%          {error, Reason}
-%%------------------------------------------------------------------------------
-parse_message([$: | Message]) ->
-    {Prefix, Rest} = split_at(?SPACE, Message),
-    {error, "Not yet implemented."};
-parse_message(Message) ->
-    get_command(Message),
-    {error, "Not yet implemented."}.
 
 %%==============================================================================
 %% Eunit tests
