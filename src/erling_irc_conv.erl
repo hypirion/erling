@@ -258,3 +258,13 @@ parse_message([$: | Message]) ->
 parse_message(Message) ->
     get_command(Message),
     {error, "Not yet implemented."}.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+is_digit_test() ->
+    %% All digits should be, well, digits.
+    ?assert(lists:all(fun is_digit/1, "0123456789")),
+    ?assertNot(lists:any(fun is_digit/1, "Hello, some non-digits goin' around")).
+
+-endif.
