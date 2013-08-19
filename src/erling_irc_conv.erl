@@ -31,7 +31,7 @@
 %%          {error, Reason}
 %%------------------------------------------------------------------------------
 message_to_tuple(Message) ->
-    {error, "Not yet implemented."}.
+    parse_message(Message).
 
 %%==============================================================================
 %% Internal functions
@@ -259,6 +259,9 @@ parse_message(Message) ->
     get_command(Message),
     {error, "Not yet implemented."}.
 
+%%==============================================================================
+%% Eunit tests
+%%==============================================================================
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
@@ -266,5 +269,21 @@ is_digit_test() ->
     %% All digits should be, well, digits.
     ?assert(lists:all(fun is_digit/1, "0123456789")),
     ?assertNot(lists:any(fun is_digit/1, "Hello, some non-digits goin' around")).
+
+is_letter_test() ->
+    %% All letters should be letters.
+    ?assert(lists:all(fun is_letter/1, "AllTheseAreLetterz")),
+    ?assert(lists:all(fun is_letter/1, "THESETOOABCDEFGHIJKLMNOPQRSTUVWXYZ")),
+    ?assertNot(lists:any(fun is_letter/1, "?!£$_1284`([~@%&](+))")).
+
+lookup_command_test() ->
+    %% Random lookups to ensure they work as intended.
+    ?assertEqual(lookup_command_name("409"), err_noorigin),
+    ?assertEqual(lookup_command_name("317"), rpl_whoisidle),
+    ?assertEqual(lookup_command_name("210"), rpl_traceconnect),
+    ?assertEqual(lookup_command_name("???"), notfound),
+    ?assertEqual(lookup_command_name("00409"), notfound),
+    ?assertEqual(lookup_command_name("??????"), notfound),
+    ?assertEqual(lookup_command_name("999"), notfound).
 
 -endif.
