@@ -11,6 +11,10 @@
 %% External exports
 -export([message_to_tuple/1]).
 
+-ifdef(TEST).
+-include_lib("proper/include/proper.hrl").
+-endif.
+
 %%------------------------------------------------------------------------------
 %% Macros
 %%------------------------------------------------------------------------------
@@ -55,6 +59,7 @@ is_letter(_) ->
 %%   syntax in rfc2812. See also the internal macro.
 %% Returns: boolean()
 %%------------------------------------------------------------------------------
+-spec is_digit(char()) -> boolean().
 is_digit(Char) when $0 =< Char, Char =< $9 ->
     true;
 is_digit(_) ->
@@ -260,10 +265,12 @@ lookup_command_name("502") -> err_usersdontmatch;
 lookup_command_name(CommandCode) -> notfound. %% We could add in reserved too?
 
 %%==============================================================================
-%% Eunit tests
+%% Eunit and PropEr tests
 %%==============================================================================
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+
+%% EUnit tests
 
 is_digit_test() ->
     %% All digits should be, well, digits.
@@ -285,5 +292,20 @@ lookup_command_test() ->
     ?assertEqual(lookup_command_name("00409"), notfound),
     ?assertEqual(lookup_command_name("??????"), notfound),
     ?assertEqual(lookup_command_name("999"), notfound).
+
+%% Property sets
+
+prop_digit_fun_macro_equal() ->
+    ?FORALL(F, char(),
+            begin is_digit(F) =:= ?IS_DIGIT(F) end).
+
+prop_letter_fun_macro_equal() ->
+    ?FORALL(F, char(),
+            begin is_letter(F) =:= ?IS_LETTER(F) end).
+
+proper_module_test() ->
+    ?assertEqual(
+       [],
+       proper:module(?MODULE, [long_result, quiet, {numtests, 1000}])).
 
 -endif.
