@@ -34,6 +34,8 @@
 %% Returns: {ok, {Prefix, Command, Params}} |
 %%          {error, Reason}
 %%------------------------------------------------------------------------------
+-spec message_to_tuple(nonempty_string()) -> {ok, {string(), string(), [any()]}}
+                                                 | {error, nonempty_string()}.
 message_to_tuple(Message) ->
     parse_message(Message).
 
@@ -46,6 +48,7 @@ message_to_tuple(Message) ->
 %%   syntax in rfc2812. See also the internal macro.
 %% Returns: boolean()
 %%------------------------------------------------------------------------------
+-spec is_letter(char()) -> boolean().
 is_letter(Char) when $A =< Char, Char =< $Z ->
     true;
 is_letter(Char) when $a =< Char, Char =< $z ->
@@ -73,6 +76,8 @@ is_digit(_) ->
 %% Returns: {BeforeMatch, AfterMatch} |
 %%          {Message, []}
 %%------------------------------------------------------------------------------
+-spec split_at(string(), M) -> {nonempty_string(), nonempty_string()}
+                                   | {M, []} when M :: nonempty_string().
 split_at(Elems, Message) ->
     Pred = fun(Elem) -> not lists:member(Elem, Elems) end,
     {Head, Tail} = lists:splitwith(Pred, Message),
@@ -89,6 +94,8 @@ split_at(Elems, Message) ->
 %% Returns: {CommandAtom, Rest} |
 %%          {err, Reason}
 %%------------------------------------------------------------------------------
+-spec get_command(nonempty_string()) -> {atom(), string()}
+                                            | {err, nonempty_string()}.
 get_command([F | Message]) ->
     if ?IS_LETTER(F) ->
             %% TODO: Convert first part to atom here.
@@ -110,6 +117,8 @@ get_command([F | Message]) ->
 %% Returns: {ok, {Prefix, Command, Params}} |
 %%          {error, Reason}
 %%------------------------------------------------------------------------------
+-spec parse_message(string()) -> {ok, {string(), string(), any()}}
+                                     | {error, nonempty_string()}.
 parse_message([$: | Message]) ->
     {Prefix, Rest} = split_at(?SPACE, Message),
     {error, "Not yet implemented."};
@@ -125,6 +134,7 @@ parse_message(Message) ->
 %% Returns: CommandAtom |
 %%          notfound
 %%------------------------------------------------------------------------------
+-spec lookup_command_name(nonempty_string()) -> atom().
 lookup_command_name("001") -> rpl_welcome;
 lookup_command_name("002") -> rpl_yourhost;
 lookup_command_name("003") -> rpl_created;
@@ -262,7 +272,7 @@ lookup_command_name("485") -> err_uniqopprivsneeded;
 lookup_command_name("491") -> err_nooperhost;
 lookup_command_name("501") -> err_umodeunknownflag;
 lookup_command_name("502") -> err_usersdontmatch;
-lookup_command_name(CommandCode) -> notfound. %% We could add in reserved too?
+lookup_command_name(_CommandCode) -> notfound. %% We could add in reserved too?
 
 %%==============================================================================
 %% Eunit and PropEr tests
@@ -306,6 +316,9 @@ prop_letter_fun_macro_equal() ->
 proper_module_test() ->
     ?assertEqual(
        [],
-       proper:module(?MODULE, [long_result, quiet, {numtests, 1000}])).
+       proper:check_specs(?MODULE, [long_result, verbose, {numtests, 1000}])),
+    ?assertEqual(
+       [],
+       proper:module(?MODULE, [long_result, verbose, {numtests, 1000}])).
 
 -endif.
