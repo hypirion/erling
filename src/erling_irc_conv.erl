@@ -124,7 +124,7 @@ get_command([F | Message]) ->
 -spec parse_message(string()) -> {ok, {string(), string(), any()}}
                                      | {error, nonempty_string()}.
 parse_message([$: | Message]) ->
-    {Prefix, Rest} = split_at(?SPACE, Message),
+    {Prefix, Rest} = split_at([?SPACE], Message),
     {error, "Not yet implemented."};
 parse_message(Message) ->
     get_command(Message),
