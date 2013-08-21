@@ -101,11 +101,15 @@ get_command([F | Message]) ->
             %% TODO: Convert first part to atom here.
             lists:splitwith(fun is_letter/1, [F | Message]);
        ?IS_DIGIT(F) ->
-            [S, T | Rest] = Message,
-            if ?IS_DIGIT(S), ?IS_DIGIT(T) ->
-                    {lookup_command_name([F, S, T]), Rest};
-               true -> % S or T not digit
-                    {err, "First element was digit, but not second/third."}
+            case Message of
+                [S, T | Rest] ->
+                    if ?IS_DIGIT(S), ?IS_DIGIT(T) ->
+                            {lookup_command_name([F, S, T]), Rest};
+                       true -> % S or T not digit
+                            {err, "First element was digit, but not second/third."}
+                    end;
+                _ ->
+                    {err, "First element was digit, didn't get enough characters."}
             end;
        true -> % neither digit nor letter
             {err, "First character was neither digit not letter."}
