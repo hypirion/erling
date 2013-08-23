@@ -144,6 +144,118 @@ parse_message(Message) ->
     {error, "Not yet implemented."}.
 
 %%------------------------------------------------------------------------------
+%% Function: parse_host/1
+%% Description: Parses a hostname/hostaddress and translates them into a
+%%   readable format. FIXME: Will also return the remaining chars, if any.
+%% Returns: {hostname, Hostname} |
+%%          {ip4, [Integers]} |
+%%          {ip6, [Integers]} |
+%%          {error, Reason}
+%%------------------------------------------------------------------------------
+parse_host(String) ->
+    parse_host(String, [], [0], [0], 0, true, true, true).
+
+%% An NFA implemented as a DFA. Don't ask, this is ugly.
+parse_host(_, _, _, _, _, false, false, false) ->
+    {error, "No possible end state"};
+parse_host([Char | Rest], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p)
+  when ?IS_DIGIT(Char) ->
+    Value = hex_to_int(Char),
+    if Namep ->
+            NewAcc = [Char | Acc];
+       not Namep ->
+            NewAcc = nil
+    end,
+    if Count >= 3; not Ip4p ->
+            NewIp4List = nil,
+            NewIp4p = false;
+       Count < 3, Ip4p ->
+            [Ip4 | Ip4Acc] = Ip4List,
+            NewIp4List = [Ip4*10 + Value | Ip4Acc],
+            NewIp4p = true
+    end,
+    if Ip6p ->
+            [Ip6 | Ip6Acc] = Ip6List,
+            NewIp6List = [Ip6*16 + Value | Ip6Acc];
+       not Ip6p ->
+            NewIp6List = nil
+    end,
+    parse_host(Rest, NewAcc, NewIp4List, NewIp6List, Count + 1,
+               Namep, NewIp4p, Ip6p);
+parse_host([Char | Rest], Acc, _, [Ip6 | Ip6Acc], Count, Namep, _, true)
+  when ?IS_HEXDIGIT(Char) ->
+    if Namep ->
+            NewAcc = [Char | Acc];
+       not Namep ->
+            NewAcc = nil
+    end,
+    Value = hex_to_int(Char),
+    parse_host(Rest, NewAcc, nil, [Ip6*16 + Value | Ip6Acc], Count + 1,
+               Namep, false, true);
+parse_host([$. | Rest], Acc, Ip4List, _, Count, true, Ip4p, _) ->
+    if Ip4p, ?IN(1, Count, 3), length(Ip4List) < 4 ->
+            NewIp4List = [0 | Ip4List],
+            NewIp4 = false;
+       true ->
+            NewIp4List = nil,
+            NewIp4 = true
+    end,
+    parse_host(Rest, [$. | Acc], NewIp4List, nil, 0, true, NewIp4, false);
+parse_host([$: | Rest], _, _, Ip6List, Count, _, _, true) ->
+    if (hd(Ip6List) =:= 16#FFFF orelse hd(Ip6List) =:= 0),
+       tl(Ip6List) == [0, 0, 0, 0, 0] ->
+            NewIp4List = [0],
+            NewIp4p = true;
+       true ->
+            NewIp4List = nil,
+            NewIp4p = false
+    end,
+    if Count =:= 0 ->
+            {error, "No hex digits between colons (':') in ip6 address."};
+       length(Ip6List) < 8 ->
+            NewIp6List = [0 | Ip6List],
+            NewIp6p = true,
+            parse_host(Rest, nil, NewIp4List, NewIp6List, 0,
+                       false, NewIp4p, NewIp6p);
+       length(Ip6List) >= 8 ->
+            {error, "Too many colons (':') in IP6 address."}
+    end;
+parse_host([Char | Rest], Acc, _, _, _, true, _, _)
+  when ?IS_LETTER(Char); Char =:= $- ->
+    parse_host(Rest, [Char | Acc], nil, nil, 0, true, false, false);
+parse_host([], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p) ->
+    if Ip4p, length(Ip4List) =:= 4, Count > 0 ->
+            {ip4, lists:reverse(Ip4List)};
+       Ip6p, length(Ip6List) =:= 8, Count > 0 ->
+            {ip6, lists:reverse(Ip6List)};
+       Namep ->
+            {hostname, lists:reverse(Ip6List)}
+    end.
+
+hex_to_int($0) -> 0;
+hex_to_int($1) -> 1;
+hex_to_int($2) -> 2;
+hex_to_int($3) -> 3;
+hex_to_int($4) -> 4;
+hex_to_int($5) -> 5;
+hex_to_int($6) -> 6;
+hex_to_int($7) -> 7;
+hex_to_int($8) -> 8;
+hex_to_int($9) -> 9;
+hex_to_int($A) -> 10;
+hex_to_int($a) -> 10;
+hex_to_int($B) -> 11;
+hex_to_int($b) -> 11;
+hex_to_int($C) -> 12;
+hex_to_int($c) -> 12;
+hex_to_int($D) -> 13;
+hex_to_int($d) -> 13;
+hex_to_int($E) -> 14;
+hex_to_int($e) -> 14;
+hex_to_int($F) -> 15;
+hex_to_int($f) -> 15.
+
+%%------------------------------------------------------------------------------
 %% Function: lookup_command_name/1
 %% Description: Returns the command atom of the command code, a three-digit
 %%   string. If the command code is not described in rfc2812, it will return
