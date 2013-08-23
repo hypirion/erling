@@ -19,10 +19,16 @@
 %% Macros
 %%------------------------------------------------------------------------------
 -define(SPACE, 16#20).
--define(CRLF, [16#0D, 16#0A]).
+-define(CR, 16#0D).
+-define(LF, 16#0A).
+-define(CRLF, [?CR, ?LF]).
 -define(IN(From, Between, To), (From =< Between andalso Between =< To)).
 -define(IS_LETTER(Char), (?IN($a, Char, $z) orelse ?IN($A, Char, $Z))).
 -define(IS_DIGIT(Char), ?IN($0, Char, $9)).
+-define(IS_SPECIAL(Char),
+        (?IN(16#5B, Char, 16#60) orelse ?IN(16#7B, Char, 16#7D))).
+-define(IS_HEXDIGIT(Char),
+        (?IS_DIGIT(Char) orelse ?IN($A, Char, $F) orelse ?IN($a, Char, $f))).
 
 %%==============================================================================
 %% External functions
