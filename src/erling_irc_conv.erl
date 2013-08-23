@@ -20,9 +20,9 @@
 %%------------------------------------------------------------------------------
 -define(SPACE, 16#20).
 -define(CRLF, [16#0D, 16#0A]).
--define(IS_LETTER(Char),
-        (($a =< Char andalso Char =< $z) orelse ($A =< Char andalso Char =< $Z))).
--define(IS_DIGIT(Char), ($0 =< Char andalso Char =< $9)).
+-define(IN(From, Between, To), (From =< Between andalso Between =< To)).
+-define(IS_LETTER(Char), (?IN($a, Char, $z) orelse ?IN($A, Char, $Z))).
+-define(IS_DIGIT(Char), ?IN($0, Char, $9)).
 
 %%==============================================================================
 %% External functions
