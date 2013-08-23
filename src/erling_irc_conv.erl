@@ -195,10 +195,10 @@ parse_host([Char | Rest], Acc, _, [Ip6 | Ip6Acc], Count, Namep, _, true)
 parse_host([$. | Rest], Acc, Ip4List, _, Count, true, Ip4p, _) ->
     if Ip4p, ?IN(1, Count, 3), length(Ip4List) < 4 ->
             NewIp4List = [0 | Ip4List],
-            NewIp4 = false;
+            NewIp4 = true;
        true ->
             NewIp4List = nil,
-            NewIp4 = true
+            NewIp4 = false
     end,
     parse_host(Rest, [$. | Acc], NewIp4List, nil, 0, true, NewIp4, false);
 parse_host([$: | Rest], _, _, Ip6List, Count, _, _, true) ->
@@ -431,6 +431,12 @@ lookup_command_test() ->
     ?assertEqual(lookup_command_name("00409"), notfound),
     ?assertEqual(lookup_command_name("??????"), notfound),
     ?assertEqual(lookup_command_name("999"), notfound).
+
+parse_host_test() ->
+    %% Random assortment of parse_host tests.
+    ?assertEqual(parse_host("192.168.0.1"), {ip4, [192, 168, 0, 1]}),
+    ?assertEqual(parse_host("8.8.8.8"), {ip4, [8, 8, 8, 8]}),
+    ?assertEqual(parse_host("255.255.0.123"), {ip4, [255, 255, 0, 123]}).
 
 %% Property sets
 
