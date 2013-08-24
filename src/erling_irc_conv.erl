@@ -229,7 +229,7 @@ parse_host([], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p) ->
        Ip6p, length(Ip6List) =:= 8, Count > 0 ->
             {ip6, lists:reverse(Ip6List)};
        Namep ->
-            {hostname, lists:reverse(Ip6List)}
+            {hostname, lists:reverse(Acc)}
     end.
 
 hex_to_int($0) -> 0;
@@ -436,7 +436,9 @@ parse_host_test() ->
     %% Random assortment of parse_host tests.
     ?assertEqual(parse_host("192.168.0.1"), {ip4, [192, 168, 0, 1]}),
     ?assertEqual(parse_host("8.8.8.8"), {ip4, [8, 8, 8, 8]}),
-    ?assertEqual(parse_host("255.255.0.123"), {ip4, [255, 255, 0, 123]}).
+    ?assertEqual(parse_host("255.255.0.123"), {ip4, [255, 255, 0, 123]}),
+    ?assertEqual(parse_host("1.2.3.4.5.6.7"), {hostname, "1.2.3.4.5.6.7"}),
+    ?assertEqual(parse_host("1.2.3"), {hostname, "1.2.3"}).
 
 %% Property sets
 
