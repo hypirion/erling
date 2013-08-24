@@ -436,12 +436,39 @@ lookup_command_test() ->
 
 parse_host_test() ->
     %% Random assortment of parse_host tests.
+    %% Ip4 checks
     ?assertEqual(parse_host("192.168.0.1"), {ip4, [192, 168, 0, 1]}),
     ?assertEqual(parse_host("8.8.8.8"), {ip4, [8, 8, 8, 8]}),
     ?assertEqual(parse_host("255.255.0.123"), {ip4, [255, 255, 0, 123]}),
     ?assertEqual(parse_host("1.2.3.4.5.6.7"), {hostname, "1.2.3.4.5.6.7"}),
     ?assertEqual(parse_host("1.2.3"), {hostname, "1.2.3"}),
-    ?assertEqual(parse_host("1.2.3."), {error, "Not enough elements."}).
+    ?assertEqual(parse_host("1.2.3."), {error, "Not enough elements."}),
+
+    %% Ip6 checks
+    ?assertEqual(parse_host("0:0:0:0:0:0:0:0"), {ip6, [0, 0, 0, 0, 0, 0, 0, 0]}),
+    ?assertEqual(parse_host("AFDA:BAAC:C00F:EE:A:E:18:234"),
+                 {ip6, [16#AFDA, 16#BAAC, 16#C00F, 16#EE,
+                        16#A, 16#E, 16#18, 16#234]}),
+    ?assertEqual(parse_host("1234:56789:0abc:def:aee:beefee:0:9001"),
+                 {ip6, [16#1234, 16#56789, 16#0abc, 16#def,
+                        16#aee, 16#beefee, 16#0, 16#9001]}),
+    %% Doesn't have to be a legal one, apparently. Shrug.
+    ?assertEqual(parse_host("FE80:0000:0000:0000:0202:B3FF:FE1E:8329"),
+                 {ip6, [16#FE80, 16#0000, 16#0000, 16#0000,
+                        16#0202, 16#B3FF, 16#FE1E, 16#8329]}),
+    ?assertEqual(parse_host("2607:f0d0:1002:0051:0000:0000:0000:0004"),
+                 {ip6, [16#2607, 16#f0d0, 16#1002, 16#0051,
+                        16#0000, 16#0000, 16#0000, 16#0004]}),
+    ?assertEqual(parse_host("1050:0000:0000:0000:0005:0600:300c:326b"),
+                 {ip6, [16#1050, 16#0000, 16#0000, 16#0000,
+                        16#0005, 16#0600, 16#300c, 16#326b]}),
+    ?assertEqual(parse_host("1050:0:0:0:5:600:300c:326b"),
+                 parse_host("1050:0000:0000:0000:0005:0600:300c:326b")),
+    ?assertEqual(parse_host("ff06::c3"),
+                 {error, "No hex digits between colons (':') in ip6 address."}),
+    %% They thought it was a good idea to ignore IPv6 shortening. Oh well.
+    nil.
+
 
 %% Property sets
 
