@@ -220,16 +220,18 @@ parse_host([$: | Rest], _, _, Ip6List, Count, _, _, true) ->
        length(Ip6List) >= 8 ->
             {error, "Too many colons (':') in IP6 address."}
     end;
-parse_host([Char | Rest], Acc, _, _, _, true, _, _)
+parse_host([Char | Rest], Acc, _, _, Count, true, _, _)
   when ?IS_LETTER(Char); Char =:= $- ->
-    parse_host(Rest, [Char | Acc], nil, nil, 0, true, false, false);
+    parse_host(Rest, [Char | Acc], nil, nil, Count + 1, true, false, false);
 parse_host([], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p) ->
     if Ip4p, length(Ip4List) =:= 4, Count > 0 ->
             {ip4, lists:reverse(Ip4List)};
        Ip6p, length(Ip6List) =:= 8, Count > 0 ->
             {ip6, lists:reverse(Ip6List)};
-       Namep ->
-            {hostname, lists:reverse(Acc)}
+       Namep, Count > 0 ->
+            {hostname, lists:reverse(Acc)};
+       true -> %% What can we deduce if we get here?
+            {error, "Not enough elements."}
     end.
 
 hex_to_int($0) -> 0;
@@ -438,7 +440,8 @@ parse_host_test() ->
     ?assertEqual(parse_host("8.8.8.8"), {ip4, [8, 8, 8, 8]}),
     ?assertEqual(parse_host("255.255.0.123"), {ip4, [255, 255, 0, 123]}),
     ?assertEqual(parse_host("1.2.3.4.5.6.7"), {hostname, "1.2.3.4.5.6.7"}),
-    ?assertEqual(parse_host("1.2.3"), {hostname, "1.2.3"}).
+    ?assertEqual(parse_host("1.2.3"), {hostname, "1.2.3"}),
+    ?assertEqual(parse_host("1.2.3."), {error, "Not enough elements."}).
 
 %% Property sets
 
