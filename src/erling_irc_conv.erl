@@ -234,6 +234,12 @@ parse_host([], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p) ->
             {error, "Not enough elements."}
     end.
 
+%%------------------------------------------------------------------------------
+%% Function: hex_to_int/1
+%% Description: Converts a hexadecimal char to its respective integer. Is case
+%%   insensitive.
+%% Returns: integer()
+%%------------------------------------------------------------------------------
 hex_to_int($0) -> 0;
 hex_to_int($1) -> 1;
 hex_to_int($2) -> 2;
