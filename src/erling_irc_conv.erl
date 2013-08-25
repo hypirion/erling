@@ -155,27 +155,14 @@ parse_message(Message) ->
 parse_host(String) ->
     parse_host(String, [], [0], [0], 0, true, true, true).
 
-%% An NFA implemented as a DFA. Don't ask, this is ugly.
+%% An NFA implemented as a DFA kind-of. Don't ask, this is ugly.
 parse_host(_, _, _, _, _, false, false, false) ->
     {error, "No possible end state."};
 parse_host([Char | Rest], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p)
   when ?IS_DIGIT(Char) ->
     Value = hex_to_int(Char),
     NewAcc = update_name_list(Char, Acc, Namep),
-    if Count >= 3; not Ip4p ->
-            NewIp4List = nil,
-            NewIp4p = false;
-       Count < 3, Ip4p ->
-            [Ip4 | Ip4Acc] = Ip4List,
-            NewIp4 = Ip4*10 + Value,
-            if NewIp4 =< 255 ->
-                    NewIp4List = [NewIp4 | Ip4Acc],
-                    NewIp4p = true;
-               NewIp4 > 255 ->
-                    NewIp4List = nil,
-                    NewIp4p = false
-            end
-    end,
+    {NewIp4List, NewIp4p} = update_ip4_list(Value, Count, Ip4List, Ip4p),
     {NewIp6List, NewIp6p} = update_ip6_list(Value, Ip6List, Ip6p),
     parse_host(Rest, NewAcc, NewIp4List, NewIp6List, Count + 1,
                Namep, NewIp4p, NewIp6p);
@@ -187,13 +174,7 @@ parse_host([Char | Rest], Acc, _, Ip6List, Count, Namep, _, Ip6p)
     parse_host(Rest, NewAcc, nil, NewIp6List, Count + 1,
                Namep, false, NewIp6p);
 parse_host([$. | Rest], Acc, Ip4List, _, Count, true, Ip4p, _) ->
-    if Ip4p, ?IN(1, Count, 3), length(Ip4List) < 4 ->
-            NewIp4List = [0 | Ip4List],
-            NewIp4 = true;
-       true ->
-            NewIp4List = nil,
-            NewIp4 = false
-    end,
+    {NewIp4List, NewIp4} = update_ip4_list('.', Count, Ip4List, Ip4p),
     parse_host(Rest, [$. | Acc], NewIp4List, nil, 0, true, NewIp4, false);
 parse_host([$: | Rest], _, _, Ip6List, Count, _, _, true) ->
     {NewIp4List, NewIp4p} = reaccept_ip4_addr(Ip6List),
@@ -243,6 +224,8 @@ parse_host([], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p) ->
             {error, "Not enough elements."}
     end.
 
+%% Utility functions for parse_host.
+
 reaccept_ip4_addr([X, 0, 0, 0, 0, 0])
   when X =:= 0; X =:= 16#FFFF ->
     {[0], true};
@@ -258,6 +241,15 @@ update_ip6_list(Value, [Ip6 | Ip6List], true)
   when Ip6*16 + Value =< 16#FFFF ->
     {[Ip6*16 + Value | Ip6List], true};
 update_ip6_list(_, _, _) ->
+    {nil, false}.
+
+update_ip4_list('.', Count, Ip4List, true)
+  when ?IN(1, Count, 3), length(Ip4List) < 4 ->
+    {[0 | Ip4List], true};
+update_ip4_list(Value, Count, [Ip4 | Ip4List], true)
+  when Ip4*10 + Value =< 255, Count < 3 ->
+    {[Ip4*10 + Value | Ip4List], true};
+update_ip4_list(_, _, _, _) ->
     {nil, false}.
 
 %%------------------------------------------------------------------------------
@@ -500,7 +492,9 @@ parse_host_ip6_test() ->
     ?assertEqual(parse_host("1050:0000:0000:0000:0005:0600:300c:326b"),
                  parse_host("1050:0:0:0:5:600:300c:326b")),
     ?assertEqual({ip6, [16#ff06, 0, 0, 0, 0, 0, 0, 16#c3]},
-                 parse_host("ff06::c3")).
+                 parse_host("ff06::c3")),
+    ?assertEqual({ip6, [0, 0, 0, 0, 0, 0, 16#10, 16#100]},
+                 parse_host("::10:100")).
 
 %% Property sets
 
