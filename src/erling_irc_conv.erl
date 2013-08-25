@@ -461,51 +461,51 @@ is_letter_test() ->
 
 lookup_command_test() ->
     %% Random lookups to ensure they work as intended.
-    ?assertEqual(lookup_command_name("409"), err_noorigin),
-    ?assertEqual(lookup_command_name("317"), rpl_whoisidle),
-    ?assertEqual(lookup_command_name("210"), rpl_traceconnect),
-    ?assertEqual(lookup_command_name("???"), notfound),
-    ?assertEqual(lookup_command_name("00409"), notfound),
-    ?assertEqual(lookup_command_name("??????"), notfound),
-    ?assertEqual(lookup_command_name("999"), notfound).
+    ?assertEqual(err_noorigin, lookup_command_name("409")),
+    ?assertEqual(rpl_whoisidle, lookup_command_name("317")),
+    ?assertEqual(rpl_traceconnect, lookup_command_name("210")),
+    ?assertEqual(notfound, lookup_command_name("???")),
+    ?assertEqual(notfound, lookup_command_name("00409")),
+    ?assertEqual(notfound, lookup_command_name("??????")),
+    ?assertEqual(notfound, lookup_command_name("999")).
 
-parse_host_test() ->
-    %% Random assortment of parse_host tests.
+parse_host_ip4_test() ->
     %% Ip4 checks
-    ?assertEqual(parse_host("192.168.0.1"), {ip4, [192, 168, 0, 1]}),
-    ?assertEqual(parse_host("8.8.8.8"), {ip4, [8, 8, 8, 8]}),
-    ?assertEqual(parse_host("255.255.0.123"), {ip4, [255, 255, 0, 123]}),
-    ?assertEqual(parse_host("255.256.0.123"), {hostname, "255.256.0.123"}),
-    ?assertEqual(parse_host("256.103.9.155"), {hostname, "256.103.9.155"}),
-    ?assertEqual(parse_host("1.2.3.4.5.6.7"), {hostname, "1.2.3.4.5.6.7"}),
-    ?assertEqual(parse_host("1.2.3"), {hostname, "1.2.3"}),
-    ?assertEqual(parse_host("1.2.3."), {error, "Not enough elements."}),
+    ?assertEqual({ip4, [192, 168, 0, 1]}, parse_host("192.168.0.1")),
+    ?assertEqual({ip4, [8, 8, 8, 8]}, parse_host("8.8.8.8")),
+    ?assertEqual({ip4, [255, 255, 0, 123]}, parse_host("255.255.0.123")),
+    ?assertEqual({hostname, "255.256.0.123"}, parse_host("255.256.0.123")),
+    ?assertEqual({hostname, "256.103.9.155"}, parse_host("256.103.9.155")),
+    ?assertEqual({hostname, "1.2.3.4.5.6.7"}, parse_host("1.2.3.4.5.6.7")),
+    ?assertEqual({hostname, "1.2.3"}, parse_host("1.2.3")),
+    ?assertEqual({error, "Not enough elements."}, parse_host("1.2.3.")).
 
+parse_host_ip6_test() ->
     %% Ip6 checks
-    ?assertEqual(parse_host("0:0:0:0:0:0:0:0"), {ip6, [0, 0, 0, 0, 0, 0, 0, 0]}),
-    ?assertEqual(parse_host("::"), parse_host("0:0:0:0:0:0:0:0")),
+    ?assertEqual({ip6, [0, 0, 0, 0, 0, 0, 0, 0]},
+                 parse_host("0:0:0:0:0:0:0:0")),
+    ?assertEqual(parse_host("0:0:0:0:0:0:0:0"), parse_host("::")),
     ?assertEqual(parse_host("::"), parse_host("0000:0000:00000::0")),
-    ?assertEqual(parse_host("AFDA:BAAC:C00F:EE:A:E:18:234"),
-                 {ip6, [16#AFDA, 16#BAAC, 16#C00F, 16#EE,
-                        16#A, 16#E, 16#18, 16#234]}),
-    ?assertEqual(parse_host("1234:56789:0abc:def:aee:beefee:0:9001"),
-                 {ip6, [16#1234, 16#56789, 16#0abc, 16#def,
-                        16#aee, 16#beefee, 16#0, 16#9001]}),
+    ?assertEqual({ip6, [16#AFDA, 16#BAAC, 16#C00F, 16#EE,
+                        16#A, 16#E, 16#18, 16#234]},
+                 parse_host("AFDA:BAAC:C00F:EE:A:E:18:234")),
+    ?assertEqual({ip6, [16#1234, 16#56789, 16#0abc, 16#def,
+                        16#aee, 16#beefee, 16#0, 16#9001]},
+                 parse_host("1234:56789:0abc:def:aee:beefee:0:9001")),
     %% Doesn't have to be a legal one, apparently. Shrug.
-    ?assertEqual(parse_host("FE80:0000:0000:0000:0202:B3FF:FE1E:8329"),
-                 {ip6, [16#FE80, 16#0000, 16#0000, 16#0000,
-                        16#0202, 16#B3FF, 16#FE1E, 16#8329]}),
-    ?assertEqual(parse_host("2607:f0d0:1002:0051:0000:0000:0000:0004"),
-                 {ip6, [16#2607, 16#f0d0, 16#1002, 16#0051,
-                        16#0000, 16#0000, 16#0000, 16#0004]}),
+    ?assertEqual({ip6, [16#FE80, 16#0000, 16#0000, 16#0000,
+                        16#0202, 16#B3FF, 16#FE1E, 16#8329]},
+                 parse_host("FE80:0000:0000:0000:0202:B3FF:FE1E:8329")),
+    ?assertEqual({ip6, [16#2607, 16#f0d0, 16#1002, 16#0051,
+                        16#0000, 16#0000, 16#0000, 16#0004]},
+                 parse_host("2607:f0d0:1002:0051:0000:0000:0000:0004")),
+    ?assertEqual({ip6, [16#1050, 16#0000, 16#0000, 16#0000,
+                        16#0005, 16#0600, 16#300c, 16#326b]},
+                parse_host("1050:0000:0000:0000:0005:0600:300c:326b")),
     ?assertEqual(parse_host("1050:0000:0000:0000:0005:0600:300c:326b"),
-                 {ip6, [16#1050, 16#0000, 16#0000, 16#0000,
-                        16#0005, 16#0600, 16#300c, 16#326b]}),
-    ?assertEqual(parse_host("1050:0:0:0:5:600:300c:326b"),
-                 parse_host("1050:0000:0000:0000:0005:0600:300c:326b")),
-    ?assertEqual(parse_host("ff06::c3"),
-                 {ip6, [16#ff06, 0, 0, 0, 0, 0, 0, 16#c3]}).
-
+                 parse_host("1050:0:0:0:5:600:300c:326b")),
+    ?assertEqual({ip6, [16#ff06, 0, 0, 0, 0, 0, 0, 16#c3]},
+                 parse_host("ff06::c3")).
 
 %% Property sets
 
