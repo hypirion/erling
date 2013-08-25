@@ -636,39 +636,38 @@ nicknames() ->
 users() ->
     ["~jean", "the-bawt", "192.168.0.1", "ant55"].
 
-hosts() ->
+hostnames() ->
     ["cpe-66-108-225-123.nyc.res.rr.com", "f-3.3-g.it", "still-ok-hostname",
-     "1024.com", "192.168.55.org", "1050:0:0:0:5:600:300c:326b", "192.168.0.1",
-     "FE80:0000:0000:0000:0202:B3FF:FE1E:8329", "::", "8.8.8.8",
-     "255.256.0.123"].
+     "1024.com", "192.168.55.org"].
+
+hosts() ->
+    hostnames() ++
+        ["1050:0:0:0:5:600:300c:326b", "192.168.0.1", "255.256.0.123",
+         "FE80:0000:0000:0000:0202:B3FF:FE1E:8329", "::", "8.8.8.8"].
 
 parse_prefix_nickname_test() ->
-    ?assert(lists:all(fun (Nick) ->
-                              parse_prefix(Nick) == {nickname, [Nick, "", ""]}
-                      end, nicknames())),
-    ?assert(lists:all(
-              fun ({Nick, User}) ->
-                      parse_prefix(Nick ++ "!" ++ User) ==
-                          {error, "Expected host for nick + user, didn't get any."}
-              end, [{Nick, User} || Nick <- nicknames(),
-                                    User <- users()])),
-    ?assert(lists:all(
-              fun ({Nick, User, Host}) ->
-                      case parse_prefix(Nick ++ "!" ++ User ++ "@" ++ Host) of
-                          {nickname, [Nick, User, _]} -> true;
-                          _ -> false
-                      end
-              end, [{Nick, User, Host} || Nick <- nicknames(),
-                                          User <- users(),
-                                          Host <- hosts()])),
-    ?assert(lists:all(
-              fun ({Nick, Host}) ->
-                      case parse_prefix(Nick ++ "@" ++ Host) of
-                          {nickname, [Nick, "", _]} -> true;
-                          _ -> false
-                      end
-              end, [{Nick, Host} || Nick <- nicknames(),
-                                    Host <- hosts()])).
+    lists:foreach(fun (Nick) ->
+                          ?assertEqual({nickname, [Nick, "", ""]},
+                                       parse_prefix(Nick))
+                  end, nicknames()),
+    lists:foreach(
+      fun ({Nick, User}) ->
+              ?assertEqual({error, "Expected host for nick + user, didn't get any."},
+                           parse_prefix(Nick ++ "!" ++ User))
+      end, [{Nick, User} || Nick <- nicknames(),
+                            User <- users()]),
+    lists:foreach(
+      fun ({Nick, User, Host}) ->
+              ?assertMatch({nickname, [Nick, User, _]},
+                           parse_prefix(Nick ++ "!" ++ User ++ "@" ++ Host))
+      end, [{Nick, User, Host} || Nick <- nicknames(),
+                                  User <- users(),
+                                  Host <- hosts()]),
+    lists:foreach(fun ({Nick, Host}) ->
+                          ?assertMatch({nickname, [Nick, "", _]},
+                                       parse_prefix(Nick ++ "@" ++ Host))
+                  end, [{Nick, Host} || Nick <- nicknames(),
+                                        Host <- hosts()]).
 
 %% Property sets
 
