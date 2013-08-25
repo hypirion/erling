@@ -629,6 +629,47 @@ parse_host_hostname_test() ->
     ?assertEqual({error, "Not enough elements."},
                  parse_host("late.hyphen-")).
 
+nicknames() ->
+    ["jeannikl-", "[PiR]", "sycorax_", "a\\b\\c", "mi|pi", "_zting", "`fwash",
+     "xXxDragon_87xXx"].
+
+users() ->
+    ["~jean", "the-bawt", "192.168.0.1", "ant55"].
+
+hosts() ->
+    ["cpe-66-108-225-123.nyc.res.rr.com", "f-3.3-g.it", "still-ok-hostname",
+     "1024.com", "192.168.55.org", "1050:0:0:0:5:600:300c:326b", "192.168.0.1",
+     "FE80:0000:0000:0000:0202:B3FF:FE1E:8329", "::", "8.8.8.8",
+     "255.256.0.123"].
+
+parse_prefix_nickname_test() ->
+    ?assert(lists:all(fun (Nick) ->
+                              parse_prefix(Nick) == {nickname, [Nick, "", ""]}
+                      end, nicknames())),
+    ?assert(lists:all(
+              fun ({Nick, User}) ->
+                      parse_prefix(Nick ++ "!" ++ User) ==
+                          {error, "Expected host for nick + user, didn't get any."}
+              end, [{Nick, User} || Nick <- nicknames(),
+                                    User <- users()])),
+    ?assert(lists:all(
+              fun ({Nick, User, Host}) ->
+                      case parse_prefix(Nick ++ "!" ++ User ++ "@" ++ Host) of
+                          {nickname, [Nick, User, _]} -> true;
+                          _ -> false
+                      end
+              end, [{Nick, User, Host} || Nick <- nicknames(),
+                                          User <- users(),
+                                          Host <- hosts()])),
+    ?assert(lists:all(
+              fun ({Nick, Host}) ->
+                      case parse_prefix(Nick ++ "@" ++ Host) of
+                          {nickname, [Nick, "", _]} -> true;
+                          _ -> false
+                      end
+              end, [{Nick, Host} || Nick <- nicknames(),
+                                    Host <- hosts()])).
+
 %% Property sets
 
 prop_digit_fun_macro_equal() ->
