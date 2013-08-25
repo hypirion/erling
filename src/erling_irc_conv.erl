@@ -161,21 +161,22 @@ parse_host(_, _, _, _, _, false, false, false) ->
 parse_host([Char | Rest], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p)
   when ?IS_DIGIT(Char) ->
     Value = hex_to_int(Char),
-    NewAcc = update_name_list(Char, Acc, Namep),
+    {NewAcc, NewNamep} = update_name_list(Char, Acc, Namep),
     {NewIp4List, NewIp4p} = update_ip4_list(Value, Count, Ip4List, Ip4p),
     {NewIp6List, NewIp6p} = update_ip6_list(Value, Ip6List, Ip6p),
     parse_host(Rest, NewAcc, NewIp4List, NewIp6List, Count + 1,
-               Namep, NewIp4p, NewIp6p);
+               NewNamep, NewIp4p, NewIp6p);
 parse_host([Char | Rest], Acc, _, Ip6List, Count, Namep, _, Ip6p)
   when ?IS_HEXDIGIT(Char) ->
-    NewAcc = update_name_list(Char, Acc, Namep),
+    {NewAcc, NewNamep} = update_name_list(Char, Acc, Namep),
     Value = hex_to_int(Char),
     {NewIp6List, NewIp6p} = update_ip6_list(Value, Ip6List, Ip6p),
     parse_host(Rest, NewAcc, nil, NewIp6List, Count + 1,
-               Namep, false, NewIp6p);
+               NewNamep, false, NewIp6p);
 parse_host([$. | Rest], Acc, Ip4List, _, Count, true, Ip4p, _) ->
     {NewIp4List, NewIp4} = update_ip4_list('.', Count, Ip4List, Ip4p),
-    parse_host(Rest, [$. | Acc], NewIp4List, nil, 0, true, NewIp4, false);
+    {NewAcc, NewNamep} = update_name_list($., Acc, true),
+    parse_host(Rest, NewAcc, NewIp4List, nil, 0, NewNamep, NewIp4, false);
 parse_host([$: | Rest], _, _, Ip6List, Count, _, _, true) ->
     {NewIp4List, NewIp4p} = reaccept_ip4_addr(Ip6List),
     if Count =:= 0, length(Ip6List) < 8 ->
@@ -205,7 +206,8 @@ parse_host([$: | Rest], _, _, Ip6List, Count, _, _, true) ->
     end;
 parse_host([Char | Rest], Acc, _, _, Count, true, _, _)
   when ?IS_LETTER(Char); Char =:= $- ->
-    parse_host(Rest, [Char | Acc], nil, nil, Count + 1, true, false, false);
+    {NewAcc, NewNamep} = update_name_list(Char, Acc, true),
+    parse_host(Rest, NewAcc, nil, nil, Count + 1, NewNamep, false, false);
 parse_host([], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p) ->
     DoubleColon = Ip6p andalso lists:member('::', Ip6List),
     if Ip4p, length(Ip4List) =:= 4, Count > 0 ->
@@ -232,10 +234,17 @@ reaccept_ip4_addr([X, 0, 0, 0, 0, 0])
 reaccept_ip4_addr(_) ->
     {nil, false}.
 
-update_name_list(Char, Namelist, true) ->
-    [Char | Namelist];
-update_name_list(_, _, false) ->
-    nil.
+update_name_list(Char, Namelist, true)
+  when ?IS_LETTER(Char); ?IS_DIGIT(Char) ->
+    {[Char | Namelist], true};
+update_name_list($., [Prev | Nlist], true)
+  when ?IS_LETTER(Prev); ?IS_DIGIT(Prev) ->
+    {[$., Prev | Nlist], true};
+update_name_list($-, [Prev | Nlist], true)
+  when Prev =/= $. ->
+    {[$-, Prev | Nlist], true};
+update_name_list(_, _, _) ->
+    {nil, false}.
 
 update_ip6_list(Value, [Ip6 | Ip6List], true)
   when Ip6*16 + Value =< 16#FFFF ->
@@ -495,6 +504,29 @@ parse_host_ip6_test() ->
                  parse_host("ff06::c3")),
     ?assertEqual({ip6, [0, 0, 0, 0, 0, 0, 16#10, 16#100]},
                  parse_host("::10:100")).
+
+parse_host_hostname_test() ->
+    %% Hostname checks
+    ?assertEqual({hostname, "normal.hostname.com"},
+                 parse_host("normal.hostname.com")),
+    ?assertEqual({hostname, "with-hyphen.org"},
+                 parse_host("with-hyphen.org")),
+    ?assertEqual({error, "No possible end state."},
+                 parse_host("ending.hyphen-.com")),
+    ?assertEqual({error, "No possible end state."},
+                 parse_host("starting.-hyphen.net")),
+    ?assertEqual({hostname, "f-3.3-g.it"},
+                 parse_host("f-3.3-g.it")),
+    ?assertEqual({error, "No possible end state."},
+                 parse_host(".starting.dot")),
+    ?assertEqual({error, "Not enough elements."},
+                 parse_host("ending.dot.")),
+    ?assertEqual({hostname, "1024.com"},
+                 parse_host("1024.com")),
+    ?assertEqual({hostname, "192.168.55.org"},
+                 parse_host("192.168.55.org")),
+    ?assertEqual({error, "No possible end state."},
+                 parse_host("-eager.hyphen")).
 
 %% Property sets
 
