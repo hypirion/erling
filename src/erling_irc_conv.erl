@@ -219,11 +219,11 @@ parse_prefix([$@ | Rest], nickname, Acc) ->
 %% Note: We don't check length, just assume they are of right size.
 parse_prefix_user([$@ | Rest], Nickname, Acc) ->
     case parse_host(Rest) of
+        {error, Reason} ->
+            {error, Reason};
         {Type, Data} ->
             {nickname,
-             [lists:reverse(Nickname), lists:reverse(Acc), {Type, Data}]};
-        {error, Reason} ->
-            {error, Reason}
+             [lists:reverse(Nickname), lists:reverse(Acc), {Type, Data}]}
     end;
 parse_prefix_user([Char | Rest], Nickname, Acc)
  when Char =/= 0; Char =/= ?CR; Char =/= ?LF; Char =/= $\ ->
