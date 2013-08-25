@@ -180,7 +180,7 @@ parse_prefix([Char | Rest], undetermined, Acc)
 parse_prefix([Char | Rest], undetermined, Acc)
   when ?IS_LETTER(Char); ?IS_DIGIT(Char); Char =:= $- ->
     parse_prefix(Rest, undetermined, [Char | Acc]);
-parse_prefix([Char | Rest], undetermined, Acc) ->
+parse_prefix([Char | _Rest], undetermined, _Acc) ->
     {error, "Illegal char for (undetermined) target: '" ++ [Char | "'."]};
 
 %% Servername handling
@@ -199,7 +199,7 @@ parse_prefix([$- | Rest], servername, [First | Acc])
 parse_prefix([$. | Rest], servername, [First | Acc])
   when First =/= $., First =/= $- ->
     parse_prefix(Rest, servername, [$., First | Acc]);
-parse_prefix([Char | Rest], servername, Acc) ->
+parse_prefix([Char | _Rest], servername, _Acc) ->
     {error, "Unexpected char for servername: '" ++ [Char | "'."]};
 
 %% Nickname handling
@@ -300,7 +300,7 @@ parse_host([Char | Rest], Acc, _, _, Count, true, _, _)
   when ?IS_LETTER(Char) ->
     {NewAcc, NewNamep} = update_name_list(Char, Acc, true),
     parse_host(Rest, NewAcc, nil, nil, Count + 1, NewNamep, false, false);
-parse_host([$- | Rest], Acc, _, _, Count, true, _, _) ->
+parse_host([$- | Rest], Acc, _, _, _, true, _, _) ->
     {NewAcc, NewNamep} = update_name_list($-, Acc, true),
     parse_host(Rest, NewAcc, nil, nil, 0, NewNamep, false, false);
 parse_host([], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p) ->
