@@ -161,11 +161,7 @@ parse_host(_, _, _, _, _, false, false, false) ->
 parse_host([Char | Rest], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p)
   when ?IS_DIGIT(Char) ->
     Value = hex_to_int(Char),
-    if Namep ->
-            NewAcc = [Char | Acc];
-       not Namep ->
-            NewAcc = nil
-    end,
+    NewAcc = update_name_list(Char, Acc, Namep),
     if Count >= 3; not Ip4p ->
             NewIp4List = nil,
             NewIp4p = false;
@@ -185,11 +181,7 @@ parse_host([Char | Rest], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p)
                Namep, NewIp4p, NewIp6p);
 parse_host([Char | Rest], Acc, _, Ip6List, Count, Namep, _, Ip6p)
   when ?IS_HEXDIGIT(Char) ->
-    if Namep ->
-            NewAcc = [Char | Acc];
-       not Namep ->
-            NewAcc = nil
-    end,
+    NewAcc = update_name_list(Char, Acc, Namep),
     Value = hex_to_int(Char),
     {NewIp6List, NewIp6p} = update_ip6_list(Value, Ip6List, Ip6p),
     parse_host(Rest, NewAcc, nil, NewIp6List, Count + 1,
@@ -204,14 +196,7 @@ parse_host([$. | Rest], Acc, Ip4List, _, Count, true, Ip4p, _) ->
     end,
     parse_host(Rest, [$. | Acc], NewIp4List, nil, 0, true, NewIp4, false);
 parse_host([$: | Rest], _, _, Ip6List, Count, _, _, true) ->
-    if (hd(Ip6List) =:= 16#FFFF orelse hd(Ip6List) =:= 0),
-       tl(Ip6List) == [0, 0, 0, 0, 0] ->
-            NewIp4List = [0],
-            NewIp4p = true;
-       true ->
-            NewIp4List = nil,
-            NewIp4p = false
-    end,
+    {NewIp4List, NewIp4p} = reaccept_ip4_addr(Ip6List),
     if Count =:= 0, length(Ip6List) < 8 ->
             DoubleColon = lists:member('::', Ip6List),
             if not DoubleColon ->
@@ -226,9 +211,8 @@ parse_host([$: | Rest], _, _, Ip6List, Count, _, _, true) ->
                     parse_host(Rest, nil, NewIp4List, NewIp6List, 0,
                                false, NewIp4p, NewIp6p);
                DoubleColon ->
-                    io:format("~w - ~w~n", [Ip6List, Rest]),
                     {error,
-                     "Cannot have more than one double colon in IP6 address"}
+                     "Cannot have more than one double colon in IP6 address."}
             end;
        length(Ip6List) < 8 ->
             NewIp6List = [0 | Ip6List],
@@ -258,6 +242,17 @@ parse_host([], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p) ->
        true -> %% What can we deduce if we get here?
             {error, "Not enough elements."}
     end.
+
+reaccept_ip4_addr([X, 0, 0, 0, 0, 0])
+  when X =:= 0; X =:= 16#FFFF ->
+    {[0], true};
+reaccept_ip4_addr(_) ->
+    {nil, false}.
+
+update_name_list(Char, Namelist, true) ->
+    [Char | Namelist];
+update_name_list(_, _, false) ->
+    nil.
 
 update_ip6_list(Value, [Ip6 | Ip6List], true)
   when Ip6*16 + Value =< 16#FFFF ->
