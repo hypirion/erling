@@ -144,6 +144,98 @@ parse_message(Message) ->
     {error, "Not yet implemented."}.
 
 %%------------------------------------------------------------------------------
+%% Function: parse_prefix/1
+%% Description: Parses a prefix and returns it in a more usable format.
+%% Returns: {servername, Servername} |
+%%          {nickname, [Nickname, User, Host]} |
+%%          {undetermined, Name} |
+%%          {error, Reason}
+%%------------------------------------------------------------------------------
+parse_prefix([]) ->
+    {error, "Empty prefix."};
+parse_prefix([Char | Rest])
+  when ?IS_LETTER(Char) ->
+    parse_prefix(Rest, undetermined, [Char]);
+parse_prefix([Char | Rest])
+  when ?IS_DIGIT(Char) ->
+    parse_prefix(Rest, servername, [Char]);
+parse_prefix([Char | Rest])
+  when ?IS_SPECIAL(Char) ->
+    parse_prefix(Rest, nickname, [Char]);
+parse_prefix([Char | _]) ->
+    {error, "Illegal starting character: '" ++ [Char | "'."]}.
+
+
+%% -- parse_prefix/3 -- (internal DFA)
+%% Undetermined handling
+parse_prefix([], undetermined, [$- | Acc]) ->
+    {nickname, [lists:reverse([$- | Acc]), "", ""]};
+parse_prefix([], undetermined, Acc) ->
+    {undetermined, lists:reverse(Acc)};
+parse_prefix([$. | Rest], undetermined, Acc) ->
+    parse_prefix([$. | Rest], servername, Acc);
+parse_prefix([Char | Rest], undetermined, Acc)
+  when ?IS_SPECIAL(Char); Char =:= $!; Char =:= $@ ->
+    parse_prefix([Char | Rest], nickname, Acc);
+parse_prefix([Char | Rest], undetermined, Acc)
+  when ?IS_LETTER(Char); ?IS_DIGIT(Char); Char =:= $- ->
+    parse_prefix(Rest, undetermined, [Char | Acc]);
+parse_prefix([Char | Rest], undetermined, Acc) ->
+    {error, "Illegal char for (undetermined) target: '" ++ [Char | "'."]};
+
+%% Servername handling
+parse_prefix([], servername, [First | Acc])
+  when First =/= $., First =/= $- ->
+    {servername, lists:reverse([First | Acc])};
+parse_prefix([], servername, [First | _])
+  when First =:= $., First =:= $- ->
+    {error, "Illegal last char in servername: '" ++ [First | "'."]};
+parse_prefix([Char | Rest], servername, Acc)
+  when ?IS_LETTER(Char); ?IS_DIGIT(Char) ->
+    parse_prefix(Rest, servername, [Char | Acc]);
+parse_prefix([$- | Rest], servername, [First | Acc])
+  when First =/= $. ->
+    parse_prefix(Rest, servername, [$-, First | Acc]);
+parse_prefix([$. | Rest], servername, [First | Acc])
+  when First =/= $., First =/= $- ->
+    parse_prefix(Rest, servername, [$., First | Acc]);
+parse_prefix([Char | Rest], servername, Acc) ->
+    {error, "Unexpected char for servername: '" ++ [Char | "'."]};
+
+%% Nickname handling
+parse_prefix([], nickname, Acc) ->
+    {nickname, [lists:reverse(Acc), "", ""]};
+parse_prefix([Char | Rest], nickname, Acc)
+  when ?IS_LETTER(Char); ?IS_DIGIT(Char); ?IS_SPECIAL(Char); Char =:= $- ->
+    parse_prefix(Rest, nickname, [Char | Acc]);
+parse_prefix([$!, Snd | Rest], nickname, Acc)
+  when Snd =/= $@ ->
+    parse_prefix_user([Snd | Rest], Acc, []);
+parse_prefix([$@ | Rest], nickname, Acc) ->
+    parse_prefix_user([$@ | Rest], Acc, "").
+
+
+%% Nickname user handling
+%% Note: We don't check length, just assume they are of right size.
+parse_prefix_user([$@ | Rest], Nickname, Acc) ->
+    case parse_host(Rest) of
+        {Type, Data} ->
+            {nickname,
+             [lists:reverse(Nickname), lists:reverse(Acc), {Type, Data}]};
+        {error, Reason} ->
+            {error, Reason}
+    end;
+parse_prefix_user([Char | Rest], Nickname, Acc)
+ when Char =/= 0; Char =/= ?CR; Char =/= ?LF; Char =/= $\ ->
+    %% Note: Char can't be space here anyway, but who knows what this program
+    %% would end up doing in the end.
+    parse_prefix_user(Rest, Nickname, [Char | Acc]);
+parse_prefix_user([Char | _Rest], _Nickname, _Acc) ->
+    {error, "Unexpected char when reading username prefix: '" ++ [Char | "'."]};
+parse_prefix_user([], _Nickname, _Acc) ->
+    {error, "Expected host for nick + user, didn't get any."}.
+
+%%------------------------------------------------------------------------------
 %% Function: parse_host/1
 %% Description: Parses a hostname/hostaddress and translates them into a
 %%   readable format. FIXME: Will also return the remaining chars, if any.
