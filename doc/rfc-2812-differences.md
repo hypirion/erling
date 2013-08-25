@@ -69,8 +69,8 @@ higher than `FFFF` in hexadecimal, or 65535 in decimal. An IP6 address *may*
 have an arbitrary amount of leading zeroes in a hexdigit group. For example
 would the hexdigit group `0000ffff` be legal in Erling and RFC 2812, although it
 is not a legal hexdigit group according to RFC 4291. The hexdigit group `C0FFEE`
-is a legal hexdigit group in RFC 2812, but is not legal in Erling or in RFC
-4291.
+is a legal hexdigit group in RFC 2812 (grammatically), but is not legal in
+Erling or in RFC 4291.
 
 Erling allows the use of `::`-compression. Consequently, Erling implements a
 superset of RFC 4921 for printing.

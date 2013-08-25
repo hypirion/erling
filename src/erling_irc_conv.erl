@@ -205,9 +205,12 @@ parse_host([$: | Rest], _, _, Ip6List, Count, _, _, true) ->
             {error, "Too many colons (':') in IP6 address."}
     end;
 parse_host([Char | Rest], Acc, _, _, Count, true, _, _)
-  when ?IS_LETTER(Char); Char =:= $- ->
+  when ?IS_LETTER(Char) ->
     {NewAcc, NewNamep} = update_name_list(Char, Acc, true),
     parse_host(Rest, NewAcc, nil, nil, Count + 1, NewNamep, false, false);
+parse_host([$- | Rest], Acc, _, _, Count, true, _, _) ->
+    {NewAcc, NewNamep} = update_name_list($-, Acc, true),
+    parse_host(Rest, NewAcc, nil, nil, 0, NewNamep, false, false);
 parse_host([], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p) ->
     DoubleColon = Ip6p andalso lists:member('::', Ip6List),
     if Ip4p, length(Ip4List) =:= 4, Count > 0 ->
@@ -509,6 +512,10 @@ parse_host_hostname_test() ->
     %% Hostname checks
     ?assertEqual({hostname, "normal.hostname.com"},
                  parse_host("normal.hostname.com")),
+    ?assertEqual({hostname, "usual.com"},
+                 parse_host("usual.com")),
+    ?assertEqual({hostname, "still-ok-hostname"},
+                 parse_host("still-ok-hostname")),
     ?assertEqual({hostname, "with-hyphen.org"},
                  parse_host("with-hyphen.org")),
     ?assertEqual({error, "No possible end state."},
@@ -526,7 +533,9 @@ parse_host_hostname_test() ->
     ?assertEqual({hostname, "192.168.55.org"},
                  parse_host("192.168.55.org")),
     ?assertEqual({error, "No possible end state."},
-                 parse_host("-eager.hyphen")).
+                 parse_host("-eager.hyphen")),
+    ?assertEqual({error, "Not enough elements."},
+                 parse_host("late.hyphen-")).
 
 %% Property sets
 
