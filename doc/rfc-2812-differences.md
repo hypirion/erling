@@ -53,3 +53,44 @@ legal hostname. Consequently, if one can receive either an IP4 address or a
 servername, one can receive `256.103.9.155`, but it will return as a servername,
 not as an IP4 address. For more information, see *Ambiguities* -> *IP4 and
 Hostname*.
+
+## Major Differences
+
+### IP6 Address Names
+
+Erling implements IP6 addresses such that they are both more constrained and
+more liberal than RFC 2812. The constraints prevents one from attempting to
+connect to a clearly erroneous address, and the liberal parsing accepts
+addresses represented as specified in RFC 4291 *and* as specified in RFC 2812,
+sans obvious erroneous ones.
+
+In Erling, an IP6 address **cannot** contain a hexdigit group which has a value
+higher than `FFFF` in hexadecimal, or 65535 in decimal. An IP6 address *may*
+have an arbitrary amount of leading zeroes in a hexdigit group. For example
+would the hexdigit group `0000ffff` be legal in Erling and RFC 2812, although it
+is not a legal hexdigit group according to RFC 4291. The hexdigit group `C0FFEE`
+is a legal hexdigit group in RFC 2812, but is not legal in Erling or in RFC
+4291.
+
+Erling allows the use of `::`-compression. Consequently, Erling implements a
+superset of RFC 4921 for printing.
+
+When Erling prints IP6 addresses, Erling will always print them in a RFC
+2812-compliant way. Erling uses the RFC 5952 as guidance to print sensible
+strings: All hexadecimal digits will be printed in lowercase, and as compressed
+as possible. `::`-compression will not happen.
+
+For example, the IP6 address `1050::5:0600:300C:326B` would be printed as
+`1050:0:0:0:5:600:300c:326b`, **not** as
+`1050:0000:0000:0000:0005:0600:300c:326b` and **not** as
+`1050:0000:0000:0000:0005:0600:300C:326B`.
+
+## References
+
+* [RFC 2812 - Internet Relay Chat: Client Protocol][rfc2812]
+* [RFC 4291 - IP Version 6 Addressing Architecture][rfc4291]
+* [RFC 5952 - A Recommendation for IPv6 Address Text Representation][rfc5952]
+
+[rfc2812]: http://tools.ietf.org/html/rfc2812
+[rfc4291]: http://tools.ietf.org/html/rfc4291
+[rfc5952]: http://tools.ietf.org/html/rfc5952
