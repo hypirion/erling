@@ -601,7 +601,7 @@ parse_host_ip6_test() ->
                  parse_host("::10:100")).
 
 parse_host_hostname_test() ->
-    %% Hostname checks
+    %% Hostname checks.
     ?assertEqual({hostname, "normal.hostname.com"},
                  parse_host("normal.hostname.com")),
     ?assertEqual({hostname, "usual.com"},

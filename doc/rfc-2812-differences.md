@@ -73,12 +73,12 @@ is a legal hexdigit group in RFC 2812 (grammatically), but is not legal in
 Erling or in RFC 4291.
 
 Erling allows the use of `::`-compression. Consequently, Erling implements a
-superset of RFC 4921 for printing.
+superset of RFC 4921 for reading.
 
 When Erling prints IP6 addresses, Erling will always print them in a RFC
 2812-compliant way. Erling uses the RFC 5952 as guidance to print sensible
-strings: All hexadecimal digits will be printed in lowercase, and as compressed
-as possible. `::`-compression will not happen.
+strings: All hexadecimal digits will be printed in lowercase, without leading
+zeroes. `::`-compression will not happen.
 
 For example, the IP6 address `1050::5:0600:300C:326B` would be printed as
 `1050:0:0:0:5:600:300c:326b`, **not** as
