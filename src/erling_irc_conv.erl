@@ -216,8 +216,24 @@ parse_host([$: | Rest], _, _, Ip6List, Count, _, _, true) ->
             NewIp4List = nil,
             NewIp4p = false
     end,
-    if Count =:= 0 ->
-            {error, "No hex digits between colons (':') in ip6 address."};
+    if Count =:= 0, length(Ip6List) < 8 ->
+            DoubleColon = lists:member('::', Ip6List),
+            if not DoubleColon ->
+                    NewIp6List = [0, '::' | Ip6List],
+                    NewIp6p = true,
+                    parse_host(Rest, nil, NewIp4List, NewIp6List, 0,
+                               false, NewIp4p, NewIp6p);
+               DoubleColon, Ip6List == [0, '::', 0] ->
+                    %% Special case for '::...'
+                    NewIp6List = Ip6List,
+                    NewIp6p = true,
+                    parse_host(Rest, nil, NewIp4List, NewIp6List, 0,
+                               false, NewIp4p, NewIp6p);
+               DoubleColon ->
+                    io:format("~w - ~w~n", [Ip6List, Rest]),
+                    {error,
+                     "Cannot have more than one double colon in IP6 address"}
+            end;
        length(Ip6List) < 8 ->
             NewIp6List = [0 | Ip6List],
             NewIp6p = true,
@@ -230,8 +246,15 @@ parse_host([Char | Rest], Acc, _, _, Count, true, _, _)
   when ?IS_LETTER(Char); Char =:= $- ->
     parse_host(Rest, [Char | Acc], nil, nil, Count + 1, true, false, false);
 parse_host([], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p) ->
+    DoubleColon = Ip6p andalso lists:member('::', Ip6List),
     if Ip4p, length(Ip4List) =:= 4, Count > 0 ->
             {ip4, lists:reverse(Ip4List)};
+       DoubleColon ->
+            Len = length(Ip6List),
+            {ip6, lists:reverse(
+                    lists:flatmap(fun('::') -> lists:duplicate(9 - Len, 0);
+                                     (X) -> [X] end,
+                                  Ip6List))};
        Ip6p, length(Ip6List) =:= 8, Count > 0 ->
             {ip6, lists:reverse(Ip6List)};
        Namep, Count > 0 ->
@@ -460,6 +483,8 @@ parse_host_test() ->
 
     %% Ip6 checks
     ?assertEqual(parse_host("0:0:0:0:0:0:0:0"), {ip6, [0, 0, 0, 0, 0, 0, 0, 0]}),
+    ?assertEqual(parse_host("::"), parse_host("0:0:0:0:0:0:0:0")),
+    ?assertEqual(parse_host("::"), parse_host("0000:0000:00000::0")),
     ?assertEqual(parse_host("AFDA:BAAC:C00F:EE:A:E:18:234"),
                  {ip6, [16#AFDA, 16#BAAC, 16#C00F, 16#EE,
                         16#A, 16#E, 16#18, 16#234]}),
@@ -479,9 +504,7 @@ parse_host_test() ->
     ?assertEqual(parse_host("1050:0:0:0:5:600:300c:326b"),
                  parse_host("1050:0000:0000:0000:0005:0600:300c:326b")),
     ?assertEqual(parse_host("ff06::c3"),
-                 {error, "No hex digits between colons (':') in ip6 address."}),
-    %% They thought it was a good idea to ignore IPv6 shortening. Oh well.
-    nil.
+                 {ip6, [16#ff06, 0, 0, 0, 0, 0, 0, 16#c3]}).
 
 
 %% Property sets
