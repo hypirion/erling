@@ -171,8 +171,14 @@ parse_host([Char | Rest], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p)
             NewIp4p = false;
        Count < 3, Ip4p ->
             [Ip4 | Ip4Acc] = Ip4List,
-            NewIp4List = [Ip4*10 + Value | Ip4Acc],
-            NewIp4p = true
+            NewIp4 = Ip4*10 + Value,
+            if NewIp4 =< 255 ->
+                    NewIp4List = [NewIp4 | Ip4Acc],
+                    NewIp4p = true;
+               NewIp4 > 255 ->
+                    NewIp4List = nil,
+                    NewIp4p = false
+            end
     end,
     if Ip6p ->
             [Ip6 | Ip6Acc] = Ip6List,
@@ -446,6 +452,8 @@ parse_host_test() ->
     ?assertEqual(parse_host("192.168.0.1"), {ip4, [192, 168, 0, 1]}),
     ?assertEqual(parse_host("8.8.8.8"), {ip4, [8, 8, 8, 8]}),
     ?assertEqual(parse_host("255.255.0.123"), {ip4, [255, 255, 0, 123]}),
+    ?assertEqual(parse_host("255.256.0.123"), {hostname, "255.256.0.123"}),
+    ?assertEqual(parse_host("256.103.9.155"), {hostname, "256.103.9.155"}),
     ?assertEqual(parse_host("1.2.3.4.5.6.7"), {hostname, "1.2.3.4.5.6.7"}),
     ?assertEqual(parse_host("1.2.3"), {hostname, "1.2.3"}),
     ?assertEqual(parse_host("1.2.3."), {error, "Not enough elements."}),
