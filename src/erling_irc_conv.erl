@@ -157,7 +157,7 @@ parse_host(String) ->
 
 %% An NFA implemented as a DFA. Don't ask, this is ugly.
 parse_host(_, _, _, _, _, false, false, false) ->
-    {error, "No possible end state"};
+    {error, "No possible end state."};
 parse_host([Char | Rest], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p)
   when ?IS_DIGIT(Char) ->
     Value = hex_to_int(Char),
@@ -180,15 +180,10 @@ parse_host([Char | Rest], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p)
                     NewIp4p = false
             end
     end,
-    if Ip6p ->
-            [Ip6 | Ip6Acc] = Ip6List,
-            NewIp6List = [Ip6*16 + Value | Ip6Acc];
-       not Ip6p ->
-            NewIp6List = nil
-    end,
+    {NewIp6List, NewIp6p} = update_ip6_list(Value, Ip6List, Ip6p),
     parse_host(Rest, NewAcc, NewIp4List, NewIp6List, Count + 1,
-               Namep, NewIp4p, Ip6p);
-parse_host([Char | Rest], Acc, _, [Ip6 | Ip6Acc], Count, Namep, _, true)
+               Namep, NewIp4p, NewIp6p);
+parse_host([Char | Rest], Acc, _, Ip6List, Count, Namep, _, Ip6p)
   when ?IS_HEXDIGIT(Char) ->
     if Namep ->
             NewAcc = [Char | Acc];
@@ -196,8 +191,9 @@ parse_host([Char | Rest], Acc, _, [Ip6 | Ip6Acc], Count, Namep, _, true)
             NewAcc = nil
     end,
     Value = hex_to_int(Char),
-    parse_host(Rest, NewAcc, nil, [Ip6*16 + Value | Ip6Acc], Count + 1,
-               Namep, false, true);
+    {NewIp6List, NewIp6p} = update_ip6_list(Value, Ip6List, Ip6p),
+    parse_host(Rest, NewAcc, nil, NewIp6List, Count + 1,
+               Namep, false, NewIp6p);
 parse_host([$. | Rest], Acc, Ip4List, _, Count, true, Ip4p, _) ->
     if Ip4p, ?IN(1, Count, 3), length(Ip4List) < 4 ->
             NewIp4List = [0 | Ip4List],
@@ -262,6 +258,12 @@ parse_host([], Acc, Ip4List, Ip6List, Count, Namep, Ip4p, Ip6p) ->
        true -> %% What can we deduce if we get here?
             {error, "Not enough elements."}
     end.
+
+update_ip6_list(Value, [Ip6 | Ip6List], true)
+  when Ip6*16 + Value =< 16#FFFF ->
+    {[Ip6*16 + Value | Ip6List], true};
+update_ip6_list(_, _, _) ->
+    {nil, false}.
 
 %%------------------------------------------------------------------------------
 %% Function: hex_to_int/1
@@ -489,10 +491,8 @@ parse_host_ip6_test() ->
     ?assertEqual({ip6, [16#AFDA, 16#BAAC, 16#C00F, 16#EE,
                         16#A, 16#E, 16#18, 16#234]},
                  parse_host("AFDA:BAAC:C00F:EE:A:E:18:234")),
-    ?assertEqual({ip6, [16#1234, 16#56789, 16#0abc, 16#def,
-                        16#aee, 16#beefee, 16#0, 16#9001]},
+    ?assertEqual({error, "No possible end state."},
                  parse_host("1234:56789:0abc:def:aee:beefee:0:9001")),
-    %% Doesn't have to be a legal one, apparently. Shrug.
     ?assertEqual({ip6, [16#FE80, 16#0000, 16#0000, 16#0000,
                         16#0202, 16#B3FF, 16#FE1E, 16#8329]},
                  parse_host("FE80:0000:0000:0000:0202:B3FF:FE1E:8329")),
