@@ -1,4 +1,4 @@
-# Internal Explanation of `erling_irc_conv.erl`
+# "Internal" Explanation of `erling_irc_conv.erl`
 
 ## `parse_prefix` and friends
 
@@ -28,3 +28,37 @@ special    =  %x5B-60 / %x7B-7D
                  ; "[", "]", "\", "`", "_", "^", "{", "|", "}"
 ```
 
+The function header is defined as such:
+
+```erl
+%%------------------------------------------------------------------------------
+%% Function: parse_prefix/1
+%% Description: Parses a prefix and returns it in a more usable format.
+%% Returns: {servername, Servername} |
+%%          {nickname, [Nickname, User, Host]} |
+%%          {undetermined, Name} |
+%%          {error, Reason}
+%%------------------------------------------------------------------------------
+```
+
+`parse_prefix` takes in a single argument, a string, which is the complete
+prefix. No more, no less. The prefix will be converted into a tuple, in which
+the first element contain the "what", and the second contain the contents. If
+the result can *only* be a servername, the first element is `servername` and the
+second element is the servername string. It should be equivalent with the input
+string as of now.
+
+If the result can *only* be a nickname, the first argument is `nickname`. The
+second argument is a list of three elements: The nickname part, the user part
+and the host part. The nickname is the actual nickname string, the user is the
+username string the user has on the specified host, and the host is a host tuple
+which will be explained later on.
+
+If it's impossible to decide whether this is a servername or a nickname,
+`undetermined` will be returned, with the same string as the one returned.
+
+Translating this thing into an understandable format is not terribly difficult,
+but generally this would potentially require a lot of checking. It would be
+preferable if we could do a single pass over the name instead of checking all
+different possibilities: We would prefer a DFA-like function instead of an
+NFA-like one.
