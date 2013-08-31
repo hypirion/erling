@@ -57,8 +57,12 @@ which will be explained later on.
 If it's impossible to decide whether this is a servername or a nickname,
 `undetermined` will be returned, with the same string as the one returned.
 
-Translating this thing into an understandable format is not terribly difficult,
-but generally this would potentially require a lot of checking. It would be
-preferable if we could do a single pass over the name instead of checking all
-different possibilities: We would prefer a DFA-like function instead of an
-NFA-like one.
+The prefix parsing is relatively straightforward. As a servername can contain
+legal values a username can't and vice versa, we can keep track of which
+possible types we can have. If the name can both be a nickname and a servername,
+we keep it undetermined. The finite state machine for `parse_prefix` turns as
+follows into this:
+
+<p align="center">
+  <img src="imgs/parse_prefix_fsm.png" alt="The parse_prefix FSM."/>
+</p>
