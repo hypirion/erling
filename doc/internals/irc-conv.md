@@ -66,3 +66,53 @@ follows into this:
 <p align="center">
   <img src="imgs/parse_prefix_fsm.png" alt="The parse_prefix FSM."/>
 </p>
+
+### User and Host Parsing
+
+So far, so good. Parsing a user for a hostname is also rather straightforward:
+We just consume characters until we hit upon an illegal char or `@`. Whenever
+we hit `@`, we start with the really ugly part here: The host parsing.
+
+I decided to implement the host parsing as complex as I possibly could. I'd like
+to do it in an NFA-style, but consume and use values as we go along. As we can
+both have IP4, IP6 and hostnames available, this is a bit messy. To recap, the
+relevant ABNF part is the following piece:
+
+```abnf
+host       =  hostname / hostaddr
+hostname   =  shortname *( "." shortname )
+shortname  =  ( letter / digit ) [ *( letter / digit / "-" )
+                                   ( letter / digit ) ]
+hostaddr   =  ip4addr / ip6addr
+ip4addr    =  1*3digit "." 1*3digit "." 1*3digit "." 1*3digit
+ip6addr    =  1*hexdigit 7( ":" 1*hexdigit )
+ip6addr    =/ "0:0:0:0:0:" ( "0" / "FFFF" ) ":" ip4addr
+```
+
+In addition, we accept the `::` shorthand form, and constrain the IP4/IP6
+addresses to only legal addresses while lexing. See "Erling's Differences from
+RFC 2812" for more information.
+
+In general, the `parse_host` parsing has turned into a really ugly piece of
+code, but the concept is not terribly difficult: We "emulate" three parsers in a
+single function, and remove possible options once we see that it's impossible to
+parse it. We do so by having a *"state"* parameter and an *"ok"* parameter for
+each legal output result (hostname/IP4/IP6), and pass those values to an update
+function, along with the value in. We get back a new "state" and "ok" parameter,
+depending on the logic and values passed in.
+
+In all cases, if "ok" is `false`, the update function short-circuits and returns
+`{nil, false}` *in general*. The only oddity here is when we have a possible IP4
+address inside the IP6 address, where we "reaccept" the ip4 address. The
+following snippet shows what's happening whenever we hit a `:` in the name:
+
+```erl
+reaccept_ip4_addr([X, 0, 0, 0, 0, 0])
+  when X =:= 0; X =:= 16#FFFF ->
+    {[0], true};
+reaccept_ip4_addr(_) ->
+    {nil, false}.
+```
+
+Not too much magic, but there's certainly a huge amount of context you have to
+add in whenever playing around with that specific part of the code.
