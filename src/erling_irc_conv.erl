@@ -135,13 +135,19 @@ parse_message([$: | Message]) ->
     {Prefix, Rest} = split_at([?SPACE], Message),
     case parse_message(Rest) of
         {ok, {"", Cmd, Params}} ->
-            {ok, {Prefix, Cmd, Params}};
+            %% TODO: undetermined stuff can be determined based on cmd (right?)
+            case parse_prefix(Prefix) of
+                {error, Reason} ->
+                    {error, Reason};
+                ParsedPrefix ->
+                    {ok, {ParsedPrefix, Cmd, Params}}
+            end;
         {error, Reason} ->
             {error, Reason}
     end;
 parse_message(Message) ->
     get_command(Message),
-    {error, "Not yet implemented."}.
+    {ok, {"", Message, []}}.
 
 %%------------------------------------------------------------------------------
 %% Function: parse_prefix/1

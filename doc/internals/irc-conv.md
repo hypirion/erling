@@ -106,7 +106,7 @@ In all cases, if "ok" is `false`, the update function short-circuits and returns
 address inside the IP6 address, where we "reaccept" the ip4 address. The
 following snippet shows what's happening whenever we hit a `:` in the name:
 
-```erl
+```erlang
 reaccept_ip4_addr([X, 0, 0, 0, 0, 0])
   when X =:= 0; X =:= 16#FFFF ->
     {[0], true};
