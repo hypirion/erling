@@ -1,7 +1,10 @@
 # erling
 [![Build Status](https://travis-ci.org/hyPiRion/erling.png?branch=master)](https://travis-ci.org/hyPiRion/erling)
 
-Erling is an IRC bot which will be written in Erlang. 
+Erling is an IRC bot which will be written in Erlang. It is currently a work in
+progress, although work has staled lately. Development may be more active when I
+am about to work with Erlang in other projects, and want to keep my skills
+polished.
 
 You may wonder why I'd bother to write yet another IRC bot. The main reason is
 simply because I belive Erlang's programming model is extremely well suited for
